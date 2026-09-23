@@ -8,9 +8,6 @@
     <link rel="icon" href="img/flowers.png" type="image/x-icon">
     <title>FLORES</title>
     <style>
-        /* ============================================
-           SELECTOR DE COLOR FLOTANTE
-           ============================================ */
         .selector-color {
             position: fixed;
             bottom: 20px;
@@ -56,9 +53,6 @@
             border-radius: 50%;
         }
 
-        /* ============================================
-           MENSAJE BONITO SUPERPUESTO
-           ============================================ */
         .mensaje-bonito {
             position: fixed;
             top: 40px;
@@ -123,9 +117,6 @@
             50% { transform: scale(1.25); }
         }
 
-        /* ============================================
-           🐰 CINNAMOROLL EN LA ESQUINA
-           ============================================ */
         .cinamoroll {
             position: fixed;
             top: 25px;
@@ -159,7 +150,6 @@
             50%      { transform: translateY(-10px) rotate(3deg); }
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .cinamoroll {
                 width: 95px;
@@ -191,18 +181,15 @@
         }
     </style>
 </head>
-<body class="container">
-    <!-- Música de fondo (opcional) -->
+<body>
     <audio src="img/Floricienta.mp3" autoplay loop preload="none">
         Tu navegador no soporta el elemento de audio.
     </audio>
 
     <div class="night"></div>
 
-    <!-- 🐰 CINNAMOROLL EN LA ESQUINA -->
     <img src="../assets/images/foto.png" alt="Cinamonroll" class="cinamoroll">
 
-    <!-- 💌 MENSAJE BONITO -->
     <div class="mensaje-bonito">
         <p>
             Sé que no te gustan casi las flores amarillas,<br>
@@ -289,7 +276,7 @@
         </div>
       </div>
 
-      <!-- FLOR 4 (nueva) -->
+      <!-- FLOR 4 -->
       <div class="flower flower--4">
         <div class="flower__leafs flower__leafs--4">
           <div class="flower__leaf flower__leaf--1"></div>
@@ -352,7 +339,6 @@
         </div>
       </div>
 
-      <!-- Ramas largas -->
       <div class="long-g long-g--0">
         <div class="grow-ans" style="--d:3s"><div class="leaf leaf--0"></div></div>
         <div class="grow-ans" style="--d:2.2s"><div class="leaf leaf--1"></div></div>
@@ -403,35 +389,119 @@
       </div>
     </div>
 
-    <!-- 🎨 SELECTOR DE COLOR (blanco por defecto) -->
     <div class="selector-color">
         <label for="colorFlor">🎨 Color:</label>
         <input type="color" id="colorFlor" value="#ffffff" title="Elige el color de las flores">
     </div>
 
     <script>
-        // Cambiar color de las flores dinámicamente
-        (function () {
-            const input = document.getElementById('colorFlor');
+    // ============================================================
+    // CAMBIO DE COLOR EN TIEMPO REAL CON WATCHER
+    // - Detecta el arrastre de la barra de tonos con requestAnimationFrame
+    // - Aplica estilos directamente con !important para que ninguna
+    //   animación los sobrescriba
+    // ============================================================
+    (function () {
+        const input = document.getElementById('colorFlor');
+        let ultimoColor = null;
+
+        function hexToRgb(hex) {
+            hex = hex.replace('#', '');
+            return {
+                r: parseInt(hex.substring(0, 2), 16),
+                g: parseInt(hex.substring(2, 4), 16),
+                b: parseInt(hex.substring(4, 6), 16)
+            };
+        }
+
+        function aclarar(hex, factor) {
+            factor = factor === undefined ? 0.4 : factor;
+            const { r, g, b } = hexToRgb(hex);
+            const nr = Math.round(r + (255 - r) * factor);
+            const ng = Math.round(g + (255 - g) * factor);
+            const nb = Math.round(b + (255 - b) * factor);
+            return 'rgb(' + nr + ', ' + ng + ', ' + nb + ')';
+        }
+
+        function aplicarColor(color) {
+            if (color === ultimoColor) return;
+            ultimoColor = color;
+
+            const rgb = hexToRgb(color);
+            const claro = aclarar(color, 0.4);
+            const rgba06 = 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', 0.6)';
+            const rgba09 = 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', 0.9)';
+
+            // 1) Variables CSS globales
             const raiz = document.documentElement;
+            raiz.style.setProperty('--color-flor', color);
+            raiz.style.setProperty('--color-flor-suave', claro);
+            raiz.style.setProperty('--color-flor-rgba', rgba06);
+            raiz.style.setProperty('--color-flor-rgba-fuerte', rgba09);
 
-            function actualizarColor(color) {
-                const hex = color.replace('#', '');
-                const r = parseInt(hex.substring(0, 2), 16);
-                const g = parseInt(hex.substring(2, 4), 16);
-                const b = parseInt(hex.substring(4, 6), 16);
+            // 2) PÉTALOS
+            document.querySelectorAll('.flower__leaf').forEach(function (el) {
+                el.style.setProperty('background-color', color, 'important');
+                el.style.setProperty('background-image',
+                    'linear-gradient(to top, ' + color + ', ' + claro + ')',
+                    'important');
+            });
 
-                raiz.style.setProperty('--color-flor', color);
-                raiz.style.setProperty('--color-flor-rgba', `rgba(${r}, ${g}, ${b}, 0.6)`);
-                raiz.style.setProperty('--color-flor-rgba-fuerte', `rgba(${r}, ${g}, ${b}, 0.9)`);
+            // 3) CÍRCULO CENTRAL
+            document.querySelectorAll('.flower__white-circle').forEach(function (el) {
+                el.style.setProperty('background-color', color, 'important');
+                el.style.setProperty('box-shadow', '0 0 1vmin ' + rgba09, 'important');
+            });
+
+            // 4) LUCES FLOTANTES
+            document.querySelectorAll('.flower__light').forEach(function (el) {
+                el.style.setProperty('background-color', color, 'important');
+                el.style.setProperty('box-shadow', '0 0 4px ' + color, 'important');
+            });
+        }
+
+        // ---- Eventos estándar ----
+        input.addEventListener('input', function (e) {
+            aplicarColor(e.target.value);
+        });
+        input.addEventListener('change', function (e) {
+            aplicarColor(e.target.value);
+        });
+
+        // ---- WATCHER: vigila el valor constantemente ----
+        // Mientras el mouse esté encima del selector, revisa cada frame
+        // si el valor cambió. Captura el arrastre de la barra de tonos
+        // aunque el navegador no dispare 'input'.
+        let watcherActivo = false;
+
+        function vigilar() {
+            if (!watcherActivo) return;
+            if (input.value !== ultimoColor) {
+                aplicarColor(input.value);
             }
+            requestAnimationFrame(vigilar);
+        }
 
-            // Color inicial (BLANCO por defecto)
-            actualizarColor(input.value);
+        input.addEventListener('mouseenter', function () {
+            watcherActivo = true;
+            vigilar();
+        });
+        input.addEventListener('mouseleave', function () {
+            watcherActivo = false;
+        });
 
-            input.addEventListener('input', (e) => actualizarColor(e.target.value));
-        })();
+        // Para móviles: activar también con touch
+        input.addEventListener('touchstart', function () {
+            watcherActivo = true;
+            vigilar();
+        }, { passive: true });
+        input.addEventListener('touchend', function () {
+            watcherActivo = false;
+        });
+
+        // ---- Color inicial ----
+        aplicarColor(input.value);
+    })();
     </script>
-    <script src="main.js"></script>
 </body>
 </html>
